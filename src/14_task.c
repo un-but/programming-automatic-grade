@@ -17,11 +17,7 @@ int copy_file(const char *src_path, const char *dst_path) {
     int result = 1; // По умолчанию программа завершилась с ошибкой
     FILE *src_file = NULL, *dst_file = NULL;
 
-    char *buffer = malloc(BUFFER_SIZE);
-    if (!buffer) {
-        perror("Ошибка выделения буфера");
-        goto clean;
-    }
+    char *buffer[20];
 
     src_file = fopen(src_path, "rb");
     if (!src_file) {
@@ -64,7 +60,6 @@ int copy_file(const char *src_path, const char *dst_path) {
             printf("Прогресс %d%%\n", current_percent);
             fflush(stdout);
         }
-
     }
 
     success:
@@ -74,8 +69,6 @@ int copy_file(const char *src_path, const char *dst_path) {
     clean:
         if (src_file) fclose(src_file);
         if (dst_file) fclose(dst_file);
-
-        free(buffer);
         return result;
 }
 
