@@ -15,17 +15,33 @@ Record records[] = {
     {5, "Дыня", 1.50f},
 };
 
-int main() {
-    FILE *file = fopen("files/16_task.bin", "wb");
-
-    // Расширение имени до 20 символов (последний всегда \0)
-    char *current_name;
-    for (int i = 0; i < 5; i++) {
-        current_name = records[i].name;
-        memset(records[i].name, 0, 20);
-        strncpy(records[i].name, current_name, 19);
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Неправильные аргументы\n");
+        return 1;
     }
 
-    fwrite(records, sizeof(Record), 5, file);
-    fclose(file);
+    if (strncmp(argv[1], "init", 4) == 0) {
+        FILE *file = fopen("files/16_task.bin", "wb");
+        if (!file) {
+            perror("Ошибка открытия файла");
+            return 1;
+        }
+
+        fwrite(records, sizeof(Record), 5, file);
+        fclose(file);
+    } else if (strncmp(argv[1], "read", 4) == 0) {
+        FILE *file = fopen("files/16_task.bin", "rb");
+        if (!file) {
+            perror("Ошибка открытия файла");
+            return 1;
+        }
+
+        Record record;
+        while (fread(&record, sizeof(Record), 1, file) == 1) {
+            printf("ID: %d Name: %s Price: %f\n", record.id, record.name, record.price);
+        }
+
+        fclose(file);
+    }
 }
