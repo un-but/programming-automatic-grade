@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE 106496 // 1 КБ
+#define BUFFER_SIZE 4096 // 4 КБ
 
-const long get_file_size(FILE *file) {
+long get_file_size(FILE *file) {
     const long start_pos = ftell(file);
 
     fseek(file, 0, SEEK_END);
@@ -14,19 +14,8 @@ const long get_file_size(FILE *file) {
 }
 
 int copy_file(const char *src_path, const char *dst_path) {
-    FILE *src_file = fopen(src_path, "rb");
-    if (!src_file) {
-        perror("Не получилось открыть исходный файл");
-        return 1;
-    }
-
-    FILE *dst_file = fopen(dst_path, "w");
-    if (!dst_file) {
-        perror("Не получилось создать файл назначения");
-        return 1;
-    }
-
-    const char filesize = get_file_size(src_file);
+    int result = 1; // По умолчанию программа завершилась с ошибкой
+    FILE *src_file = NULL, *dst_file = NULL;
 
     char *buffer = malloc(BUFFER_SIZE);
     if (!buffer) {
@@ -34,21 +23,65 @@ int copy_file(const char *src_path, const char *dst_path) {
         goto clean;
     }
 
-    long step = filesize / 100;
-    long percent = 0;
-    long total_progress = 0, step_progress = 0;
+    src_file = fopen(src_path, "rb");
+    if (!src_file) {
+        perror("Не получилось открыть исходный файл");
+        goto clean;
+    }
+
+    dst_file = fopen(dst_path, "wb");
+    if (!dst_file) {
+        perror("Не получилось создать файл назначения");
+        goto clean;
+    }
+
+    const long filesize = get_file_size(src_file);
+    if (filesize == 0) {
+        puts("Прогресс 100%");
+        goto success;
+    }
+
+    long bytes_read, bytes_written;
+
+    long total_progress = 0;
+    short last_percent = 0;
+
+    while (
+        (bytes_read = fread(buffer, 1, BUFFER_SIZE, src_file)) > 0
+    ) {
+        bytes_written = fwrite(buffer, 1, bytes_read, dst_file);
+
+        if (bytes_read != bytes_written) {
+            perror("Ошибка копирования");
+            goto clean;
+        }
+
+        total_progress += bytes_read;
+        const short current_percent = (total_progress * 100) / filesize;
+
+        if (current_percent != last_percent) {
+            last_percent = current_percent;
+            printf("Прогресс %d%%\n", current_percent);
+            fflush(stdout);
+        }
+
+    }
+
+    success:
+        puts("\nФайл скопирован");
+        result = 0;
 
     clean:
-        fclose(src_file);
-        fclose(dst_file);
-        return 1;
+        if (src_file) fclose(src_file);
+        if (dst_file) fclose(dst_file);
 
-    return 0;
+        free(buffer);
+        return result;
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        perror("Некорректные аргументы");
+        fprintf(stderr, "Некорректные аргументы\n");
         return 1;
     }
 
