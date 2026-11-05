@@ -41,7 +41,7 @@ int copy_file(const char *src_path, const char *dst_path) {
         goto success;
     }
 
-    long bytes_read, bytes_written;
+    size_t bytes_read, bytes_written;
 
     long total_progress = 0;
     short last_percent = 0;
