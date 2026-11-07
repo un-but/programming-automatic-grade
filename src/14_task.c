@@ -1,17 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #define BUFFER_SIZE 4096 // 4 КБ
-
-long get_file_size(FILE *file) {
-    const long start_pos = ftell(file);
-
-    fseek(file, 0, SEEK_END);
-    const long size = ftell(file);
-
-    fseek(file, start_pos, SEEK_SET);
-    return size;
-}
 
 int copy_file(const char *src_path, const char *dst_path) {
     int result = 1; // По умолчанию программа завершилась с ошибкой
@@ -31,7 +22,12 @@ int copy_file(const char *src_path, const char *dst_path) {
         goto clean;
     }
 
-    const long filesize = get_file_size(src_file);
+    long filesize;
+    {
+        struct stat st;
+        if (stat(src_path, &st) == 0) filesize = st.st_size;
+    }
+
     if (filesize == 0) {
         puts("Прогресс 100%");
         goto success;
