@@ -3,22 +3,67 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <stdbool.h>
+
 #include <tomcrypt.h>
 
 #define BUFFER_SIZE 1048576 // 1 МБ
 
-int encrypt(char *buffer, const char *iv, const char *password) {
-    return 0;
+void generate_key(const char *password, unsigned char *key_out) {
+    hash_state hash;
+
+    sha256_init(&hash);
+    sha256_process(&hash, (const unsigned char*)password, strlen(password));
+    sha256_done(&hash, key_out);
+
+    zeromem(&hash, sizeof(hash));
 }
 
-int decrypt(char *buffer, const char *iv, const char *password) {
-    return 0;
+int encrypt(unsigned char *buffer, size_t buffer_len, FILE *output_file, symmetric_CBC *cbc, bool is_last) {
+    int result = 1;
+
+    // Добавляем padding
+    if (is_last) {
+        const size_t padding_len = 16 - (buffer_len % 16);
+        memset(buffer + buffer_len, padding_len, padding_len);
+        buffer_len += padding_len;
+    }
+
+    // TODO здесь выполняется шифрование buffer и дозапись в output_file
+
+    result = 0;
+
+    incorrect_file:
+        return result;
+}
+
+int decrypt(unsigned char *buffer, size_t buffer_len, FILE *output_file, symmetric_CBC *cbc, bool is_last) {
+    int result = 1;
+
+    // Убираем padding
+    if (is_last && buffer_len != 0) {
+        if (buffer_len % 16 != 0) goto incorrect_file;
+        const size_t padding_len = buffer[buffer_len - 1];
+
+        for (size_t i = 0; i < padding_len; i++) {
+            if (buffer[buffer_len - i - 1] != padding_len) goto incorrect_file;
+        }
+    }
+
+    // TODO здесь выполняется дешифрование buffer и дозапись в output_file
+
+    result = 0;
+
+    incorrect_file:
+        return result;
 }
 
 int work(const char mode[2], const size_t filesize, const char *password, FILE *input_file, FILE *output_file) {
     int result = 1;
-    char iv[16];
-    char *buffer = NULL;
+
+    unsigned char iv[16];
+    unsigned char *buffer = NULL;
+    symmetric_CBC cbc;
 
     if (strcmp(mode, "-e") == 0) {
         FILE *rndm_file = fopen("/dev/urandom", "rb");
@@ -30,42 +75,46 @@ int work(const char mode[2], const size_t filesize, const char *password, FILE *
         fread(iv, 1, 16, input_file);
     }
 
-    char *aes_key;
+    unsigned char aes_key[32];
+    generate_key(password, aes_key);
 
-    if (filesize > BUFFER_SIZE) {
-        buffer = malloc(BUFFER_SIZE);
-        size_t bytes_read;
+    if (cbc_start(find_cipher("aes"), iv, aes_key, 32, 0, &cbc) != CRYPT_OK) goto error;
 
-        while (
-            (bytes_read = fread(buffer, 1, BUFFER_SIZE, input_file)) > 0
-        ) {
-            if (strcmp(mode, "-e") == 0) {
-                if (encrypt(buffer, iv, aes_key) != 0) goto error;
-            } else {
-                if (decrypt(buffer, iv, aes_key) != 0) goto error;
-            }
-        }
-    } else {
-        buffer = malloc(filesize);
-        fread(buffer, 1, filesize, input_file);
+    buffer = malloc(BUFFER_SIZE);
+    size_t bytes_remained = filesize, bytes_read;
+
+    while (
+        (bytes_read = fread(buffer, 1, BUFFER_SIZE > bytes_remained ? bytes_remained : BUFFER_SIZE, input_file)) > 0
+    ) {
+        bool is_last = (bytes_remained - bytes_read <= 0);
 
         if (strcmp(mode, "-e") == 0) {
-            if (encrypt(buffer, iv, aes_key) != 0) goto error;
+            if (encrypt(buffer, bytes_read, output_file, &cbc, is_last) != 0) goto error;
         } else {
-            if (decrypt(buffer, iv, aes_key) != 0) goto error;
+            if (decrypt(buffer, bytes_read, output_file, &cbc, is_last) != 0) goto error;
         }
+
+        bytes_remained -= bytes_read;
     }
 
     result = 0;
 
     error:
-        if (buffer != NULL) free(buffer);
+        zeromem(aes_key, BUFFER_SIZE);
+        cbc_done(&cbc);
+
+        if (buffer != NULL) {
+            zeromem(buffer, BUFFER_SIZE);
+            free(buffer);
+        }
+
         return result;
 
 }
 
 int main(int argc, char *argv[]) {
     int result = 1;
+    register_cipher(&aes_desc);
 
     if (argc != 5 || (strcmp(argv[1], "-e") != 0 && strcmp(argv[1], "-d") != 0)
     ) {
