@@ -14,20 +14,24 @@ int copy_file(const char *src_path,
     src_file = fopen(src_path, "rb");
     if (!src_file) {
         perror("Не получилось открыть исходный файл");
-        goto clean;
+        goto error;
     }
 
     dst_file = fopen(dst_path, "wb");
     if (!dst_file) {
         perror("Не получилось создать файл назначения");
-        goto clean;
+        goto error;
     }
 
     long filesize;
     {
         struct stat st;
-        if (stat(src_path, &st) == 0)
+        if (stat(src_path, &st) == 0) {
             filesize = st.st_size;
+        } else {
+            fprintf(stderr, "Не удалось установить размер входного файла");
+            goto error;
+        }
     }
 
     if (filesize == 0) {
@@ -38,18 +42,18 @@ int copy_file(const char *src_path,
     size_t bytes_read, bytes_written;
 
     long total_progress = 0;
-    short last_percent = 0;
+    int last_percent = 0;
 
     while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, src_file)) > 0) {
         bytes_written = fwrite(buffer, 1, bytes_read, dst_file);
 
         if (bytes_read != bytes_written) {
             perror("Ошибка копирования");
-            goto clean;
+            goto error;
         }
 
         total_progress += bytes_read;
-        const short current_percent = (total_progress * 100) / filesize;
+        const int current_percent = (int)((total_progress * 100) / filesize);
 
         if (current_percent != last_percent) {
             last_percent = current_percent;
@@ -62,7 +66,7 @@ success:
     puts("\nФайл скопирован");
     result = 0;
 
-clean:
+error:
     if (src_file)
         fclose(src_file);
     if (dst_file)

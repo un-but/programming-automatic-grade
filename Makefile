@@ -8,9 +8,11 @@ FILE ?=
 
 .PHONY: build clean
 
+$(BIN_DIR)/19_task: LDFLAGS = -ltomcrypt
+
 $(BIN_DIR)/%: $(SRC_DIR)/%.c
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 	@echo "✅ Успешно скомпилировано: $@"
 
 clean:

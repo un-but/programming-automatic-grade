@@ -58,5 +58,5 @@ int main(int argc,
         return 1;
     }
 
-    return rewrite_by_id(argv[1], atoi(argv[2]), argv[3], atof(argv[4]));
+    return rewrite_by_id(argv[1], atoi(argv[2]), argv[3], (float)atof(argv[4]));
 }

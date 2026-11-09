@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <time.h>
 #include <tomcrypt.h>
 
 #define BUFFER_SIZE 1048576 // 1 МБ
@@ -28,11 +29,16 @@ int encrypt(unsigned char *buffer,
     // Добавляем padding
     if (is_last) {
         const size_t padding_len = 16 - (buffer_len % 16);
-        memset(buffer + buffer_len, padding_len, padding_len);
+        memset(buffer + buffer_len, (int)padding_len, padding_len);
         buffer_len += padding_len;
     }
 
-    // TODO здесь выполняется шифрование buffer и дозапись в output_file
+    if (cbc_encrypt(buffer, buffer, buffer_len, cbc) != CRYPT_OK)
+        return 1;
+
+    if (fwrite(buffer, 1, buffer_len, output_file) < buffer_len)
+        return 1;
+
     return 0;
 }
 
@@ -41,6 +47,9 @@ int decrypt(unsigned char *buffer,
             FILE *output_file,
             symmetric_CBC *cbc,
             bool is_last) {
+    if (cbc_decrypt(buffer, buffer, buffer_len, cbc) != CRYPT_OK)
+        return 1;
+
     // Убираем padding
     if (is_last && buffer_len != 0) {
         if (buffer_len % 16 != 0)
@@ -52,9 +61,13 @@ int decrypt(unsigned char *buffer,
             if (buffer[buffer_len - i - 1] != padding_len)
                 return 1;
         }
+
+        buffer_len -= padding_len;
     }
 
-    // TODO здесь выполняется дешифрование buffer и дозапись в output_file
+    if (fwrite(buffer, 1, buffer_len, output_file) < buffer_len)
+        return 1;
+
     return 0;
 }
 
@@ -122,20 +135,22 @@ error:
 int main(int argc,
          char *argv[]) {
     int result = 1;
-    register_cipher(&aes_desc);
 
     if (argc != 5 || (strcmp(argv[1], "-e") != 0 && strcmp(argv[1], "-d") != 0)) {
-        printf("Неправильное использование программы");
+        fprintf(stderr, "Неправильное использование программы\n");
         return 1;
     }
 
-    FILE *input_file = fopen(argv[2], "rb");
+    FILE *input_file = NULL, *output_file = NULL;
+    register_cipher(&aes_desc);
+
+    input_file = fopen(argv[2], "rb");
     if (!input_file) {
         perror("Ошибка открытия входного файла");
         goto error;
     }
 
-    FILE *output_file = fopen(argv[3], "wb");
+    output_file = fopen(argv[3], "wb");
     if (!output_file) {
         perror("Ошибка создания выходного файла");
         goto error;
@@ -144,14 +159,18 @@ int main(int argc,
     size_t filesize;
     {
         struct stat st;
-        if (stat(argv[2], &st) == 0)
-            filesize = st.st_size;
+        if (stat(argv[2], &st) == 0) {
+            filesize = (size_t)st.st_size;
+        } else {
+            fprintf(stderr, "Не удалось установить размер входного файла\n");
+            goto error;
+        }
     }
 
     if (work(argv[1], filesize, argv[4], input_file, output_file) != 0)
         goto error;
 
-    printf("Файл %s успешно %s и сохранен в %s",
+    printf("Файл %s успешно %s и сохранен в %s\n",
            argv[2],
            strcmp(argv[1], "-e") == 0 ? "зашифрован" : "дешифрован",
            argv[3]);
