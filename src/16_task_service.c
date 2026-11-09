@@ -15,7 +15,8 @@ Record records[] = {
     {5, "Дыня", 1.50f},
 };
 
-int main(int argc, char *argv[]) {
+int main(int argc,
+         char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Неправильные аргументы\n");
         return 1;

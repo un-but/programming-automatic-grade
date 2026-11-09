@@ -4,7 +4,8 @@
 
 #define BUFFER_SIZE 4096 // 4 КБ
 
-int copy_file(const char *src_path, const char *dst_path) {
+int copy_file(const char *src_path,
+              const char *dst_path) {
     int result = 1; // По умолчанию программа завершилась с ошибкой
     FILE *src_file = NULL, *dst_file = NULL;
 
@@ -25,7 +26,8 @@ int copy_file(const char *src_path, const char *dst_path) {
     long filesize;
     {
         struct stat st;
-        if (stat(src_path, &st) == 0) filesize = st.st_size;
+        if (stat(src_path, &st) == 0)
+            filesize = st.st_size;
     }
 
     if (filesize == 0) {
@@ -38,9 +40,7 @@ int copy_file(const char *src_path, const char *dst_path) {
     long total_progress = 0;
     short last_percent = 0;
 
-    while (
-        (bytes_read = fread(buffer, 1, BUFFER_SIZE, src_file)) > 0
-    ) {
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, src_file)) > 0) {
         bytes_written = fwrite(buffer, 1, bytes_read, dst_file);
 
         if (bytes_read != bytes_written) {
@@ -58,17 +58,20 @@ int copy_file(const char *src_path, const char *dst_path) {
         }
     }
 
-    success:
-        puts("\nФайл скопирован");
-        result = 0;
+success:
+    puts("\nФайл скопирован");
+    result = 0;
 
-    clean:
-        if (src_file) fclose(src_file);
-        if (dst_file) fclose(dst_file);
-        return result;
+clean:
+    if (src_file)
+        fclose(src_file);
+    if (dst_file)
+        fclose(dst_file);
+    return result;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc,
+         char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Некорректные аргументы\n");
         return 1;

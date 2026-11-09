@@ -1,0 +1,29 @@
+BasedOnStyle: LLVM
+Language: C
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Attach # Открывающая скобка на той же строке
+ColumnLimit: 100 # Длина строки
+
+PointerAlignment: Right # Прижимать * к имени переменной
+
+# Пробелы вокруг операторов
+SpacesInParentheses: false
+SpacesInAngles: Never
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+
+AlignConsecutiveMacros: Consecutive # Выравнивать макросы для читаемости
+
+AllowShortBlocksOnASingleLine: Never # Запрет однострочных блоков кода
+AllowShortFunctionsOnASingleLine: None # Запрет однострочных функций
+
+# Перенос аргументов и параметров функций на новую строку
+BinPackArguments: false
+BinPackParameters: AlwaysOnePerLine
+AllowAllArgumentsOnNextLine: false
+
+SpaceBeforeParens: ControlStatements # Пробелы перед скобками в управляющих конструкциях

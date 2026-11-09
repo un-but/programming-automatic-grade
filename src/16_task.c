@@ -8,9 +8,13 @@ typedef struct {
     float price;
 } Record;
 
-_Static_assert(sizeof(Record) == 28, "Ошибка компиляции: размер одной записи должен быть равен 28 байтам");
+_Static_assert(sizeof(Record) == 28,
+               "Ошибка компиляции: размер одной записи должен быть равен 28 байтам");
 
-int rewrite_by_id(const char *filename, const int id, const char *name, const float price) {
+int rewrite_by_id(const char *filename,
+                  const int id,
+                  const char *name,
+                  const float price) {
     int result = 1; // По умолчанию программа завершилась с ошибкой
 
     FILE *file = fopen(filename, "rb+");
@@ -20,9 +24,7 @@ int rewrite_by_id(const char *filename, const int id, const char *name, const fl
     }
 
     Record current_record;
-    while (
-        fread(&current_record, sizeof(Record), 1, file) == 1
-    ) {
+    while (fread(&current_record, sizeof(Record), 1, file) == 1) {
         if (current_record.id == id) {
             current_record.price = price;
             memset(current_record.name, 0, 20);
@@ -39,16 +41,18 @@ int rewrite_by_id(const char *filename, const int id, const char *name, const fl
     puts("Запись с указанным id не найдена");
     goto clean;
 
-    success:
-        puts("Запись обновлена");
-        result = 0;
+success:
+    puts("Запись обновлена");
+    result = 0;
 
-    clean:
-        if (file) fclose(file);
-        return result;
+clean:
+    if (file)
+        fclose(file);
+    return result;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc,
+         char *argv[]) {
     if (argc != 5) {
         fprintf(stderr, "Некорректные аргументы\n");
         return 1;
