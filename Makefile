@@ -9,6 +9,7 @@ FILE ?=
 .PHONY: build clean
 
 $(BIN_DIR)/19_task: LDFLAGS = -ltomcrypt
+$(BIN_DIR)/20_task: LDFLAGS = -lSDL2 -lSDL2_image
 
 $(BIN_DIR)/%: $(SRC_DIR)/%.c
 	@mkdir -p $(BIN_DIR)
